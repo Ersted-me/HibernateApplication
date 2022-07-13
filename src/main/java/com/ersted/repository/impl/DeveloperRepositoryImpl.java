@@ -7,6 +7,7 @@ import com.ersted.util.HibernateUtil;
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
 import java.util.List;
 
@@ -29,10 +30,15 @@ public class DeveloperRepositoryImpl implements DeveloperRepository {
     public Developer getById(Long id) {
         Session session = HibernateUtil.getSession();
         Transaction transaction = session.beginTransaction();
+        Query<Developer> query = session.createQuery(
+                "FROM Developer dev " +
+                        "join fetch dev.specialty spec " +
+                        "join fetch dev.skills " +
+                        "where dev.id = :id",
+                Developer.class)
+                .setParameter("id", id);
 
-        Developer developer = session.get(Developer.class, id);
-        Hibernate.initialize(developer.getSpecialty());
-        Hibernate.initialize(developer.getSkills());
+        Developer developer = query.getSingleResult();
 
         transaction.commit();
         session.close();
@@ -72,10 +78,11 @@ public class DeveloperRepositoryImpl implements DeveloperRepository {
         Session session = HibernateUtil.getSession();
         Transaction transaction = session.beginTransaction();
 
-        List<Developer> developers = session.createQuery("FROM com.ersted.model.Developer").getResultList();
-
-        for(Developer developer: developers)
-            Hibernate.initialize(developer.getSpecialty());
+        List<Developer> developers = session.createQuery(
+                "FROM Developer dev " +
+                        "join fetch dev.specialty spec",
+                Developer.class)
+                .getResultList();
 
         transaction.commit();
         session.close();
